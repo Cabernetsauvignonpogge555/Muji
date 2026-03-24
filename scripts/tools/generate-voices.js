@@ -3,21 +3,63 @@
  * ElevenLabs voice file generator for Muji.
  *
  * Usage:
- *   node scripts/tools/generate-voices.js
+ *   # Generate all default voices (skips existing files)
+ *   ELEVENLABS_API_KEY=sk_xxx node scripts/tools/generate-voices.js
  *
- * Requires ELEVENLABS_API_KEY env var (or hardcoded below for one-time use).
+ *   # Generate from custom YAML file
+ *   ELEVENLABS_API_KEY=sk_xxx node scripts/tools/generate-voices.js --config custom-voices.yaml
+ *
+ *   # Force regenerate (overwrite existing files)
+ *   ELEVENLABS_API_KEY=sk_xxx node scripts/tools/generate-voices.js --force
+ *
+ *   # Use a specific voice ID
+ *   ELEVENLABS_API_KEY=sk_xxx node scripts/tools/generate-voices.js --voice-id AbCdEfGhIjKlMnOpQrSt
+ *
+ *   # Generate only specific events
+ *   ELEVENLABS_API_KEY=sk_xxx node scripts/tools/generate-voices.js --only session_start,idle_01
+ *
+ *   # Generate only specific languages
+ *   ELEVENLABS_API_KEY=sk_xxx node scripts/tools/generate-voices.js --lang ko
+ *
+ * Custom YAML format (see config/custom-voices.example.yaml):
+ *   voice_id: "YOUR_VOICE_ID"
+ *   model_id: "eleven_multilingual_v2"
+ *   voice_settings:
+ *     stability: 0.5
+ *     similarity_boost: 0.75
+ *   messages:
+ *     my_custom_event:
+ *       en: "Hello world"
+ *       ko: "안녕하세요"
  */
 
 const https = require('node:https');
 const fs = require('node:fs');
 const path = require('node:path');
 
+// ---------------------------------------------------------------------------
+// Argument parsing
+// ---------------------------------------------------------------------------
+const args = process.argv.slice(2);
+function getArg(flag) {
+  const idx = args.indexOf(flag);
+  if (idx === -1 || idx + 1 >= args.length) return null;
+  return args[idx + 1];
+}
+const hasFlag = (flag) => args.includes(flag);
+
 const API_KEY = process.env.ELEVENLABS_API_KEY || '';
-const VOICE_ID = 'NYYvfgcWTZs3NndsUIuq';
+const FORCE = hasFlag('--force');
+const CONFIG_PATH = getArg('--config');
+const VOICE_ID_OVERRIDE = getArg('--voice-id');
+const ONLY_EVENTS = getArg('--only')?.split(',').map((s) => s.trim());
+const ONLY_LANGS = getArg('--lang')?.split(',').map((s) => s.trim());
 const OUTPUT_DIR = path.resolve(__dirname, '..', '..', 'sounds', 'voices');
 
-const MESSAGES = {
-  // --- Existing notification events ---
+// ---------------------------------------------------------------------------
+// Default messages (built-in)
+// ---------------------------------------------------------------------------
+const DEFAULT_MESSAGES = {
   session_start: {
     en: "Let's get started.",
     ko: '같이 시작해볼까?',
@@ -48,7 +90,7 @@ const MESSAGES = {
     ko: '5분 남았어.',
   },
   break_end: {
-    en: "Break is over. Ready to continue?",
+    en: 'Break is over. Ready to continue?',
     ko: '다시 시작할까?',
   },
   task_completed: {
@@ -56,17 +98,15 @@ const MESSAGES = {
     ko: '작업 끝났어.',
   },
   session_end: {
-    en: "Great session. Take care.",
+    en: 'Great session. Take care.',
     ko: '오늘 수고했어. 푹 쉬어.',
   },
   error_generic: {
     en: 'An error occurred.',
     ko: '에러 발생했어.',
   },
-
-  // --- Hourly chime messages ---
   hourly_01: {
-    en: "It has been an hour. How is it going?",
+    en: 'It has been an hour. How is it going?',
     ko: '벌써 한 시간 지났어. 잘 되고 있어?',
   },
   hourly_02: {
@@ -77,36 +117,52 @@ const MESSAGES = {
     en: "One more hour. You're making good progress.",
     ko: '한 시간 또 지났네. 잘 하고 있어.',
   },
-
-  // --- Idle reminder messages (30min+ no response) ---
   idle_01: {
-    en: "It has been a while. Maybe go for a short walk?",
+    en: 'It has been a while. Maybe go for a short walk?',
     ko: '좀 쉬어가는 게 어때? 잠깐 산책하고 와.',
   },
   idle_02: {
-    en: "You have been quiet. Stretch a bit, I will be here.",
+    en: 'You have been quiet. Stretch a bit, I will be here.',
     ko: '좀 조용하네. 스트레칭이라도 하고 와, 기다릴게.',
   },
   idle_03: {
-    en: "Still there? Take a breather if you need one.",
+    en: 'Still there? Take a breather if you need one.',
     ko: '아직 있어? 필요하면 잠깐 쉬어도 돼.',
   },
   idle_04: {
-    en: "No rush. Grab some water and come back fresh.",
+    en: 'No rush. Grab some water and come back fresh.',
     ko: '서두를 거 없어. 물 한 잔 하고 와.',
   },
   idle_05: {
-    en: "Hey, do not forget to rest your eyes for a moment.",
+    en: 'Hey, do not forget to rest your eyes for a moment.',
     ko: '야, 눈 좀 쉬어줘. 잠깐이라도.',
   },
 };
 
-function synthesize(text, outputPath) {
+// ---------------------------------------------------------------------------
+// Load custom config
+// ---------------------------------------------------------------------------
+function loadCustomConfig(configPath) {
+  let YAML;
+  try {
+    YAML = require('yaml');
+  } catch {
+    console.error('Error: yaml package required for custom config. Run: npm install yaml');
+    process.exit(1);
+  }
+  const content = fs.readFileSync(configPath, 'utf8');
+  return YAML.parse(content);
+}
+
+// ---------------------------------------------------------------------------
+// ElevenLabs API
+// ---------------------------------------------------------------------------
+function synthesize(text, outputPath, voiceId, modelId, voiceSettings) {
   return new Promise((resolve, reject) => {
     const body = JSON.stringify({
       text,
-      model_id: 'eleven_multilingual_v2',
-      voice_settings: {
+      model_id: modelId || 'eleven_multilingual_v2',
+      voice_settings: voiceSettings || {
         stability: 0.5,
         similarity_boost: 0.75,
         style: 0.3,
@@ -116,7 +172,7 @@ function synthesize(text, outputPath) {
 
     const options = {
       hostname: 'api.elevenlabs.io',
-      path: `/v1/text-to-speech/${VOICE_ID}`,
+      path: `/v1/text-to-speech/${voiceId}`,
       method: 'POST',
       headers: {
         'xi-api-key': API_KEY,
@@ -147,40 +203,82 @@ function synthesize(text, outputPath) {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
 async function main() {
+  if (!API_KEY) {
+    console.error('Error: ELEVENLABS_API_KEY environment variable is required.');
+    console.error('  Set it: ELEVENLABS_API_KEY=sk_xxx node scripts/tools/generate-voices.js');
+    process.exit(1);
+  }
+
+  let voiceId = VOICE_ID_OVERRIDE || 'NYYvfgcWTZs3NndsUIuq';
+  let modelId = 'eleven_multilingual_v2';
+  let voiceSettings = null;
+  let messages = DEFAULT_MESSAGES;
+
+  // Load custom config if provided
+  if (CONFIG_PATH) {
+    const custom = loadCustomConfig(CONFIG_PATH);
+    if (custom.voice_id) voiceId = custom.voice_id;
+    if (custom.model_id) modelId = custom.model_id;
+    if (custom.voice_settings) voiceSettings = custom.voice_settings;
+    if (custom.messages) {
+      // Merge: custom messages override defaults
+      messages = { ...DEFAULT_MESSAGES, ...custom.messages };
+    }
+    console.log(`Loaded custom config: ${CONFIG_PATH}`);
+  }
+
+  console.log(`Voice ID: ${voiceId}`);
+  console.log(`Model: ${modelId}`);
+  console.log(`Output: ${OUTPUT_DIR}`);
+  console.log(`Force: ${FORCE}\n`);
+
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
+  // Build entry list
   const entries = [];
-  for (const [event, langs] of Object.entries(MESSAGES)) {
+  for (const [event, langs] of Object.entries(messages)) {
+    if (ONLY_EVENTS && !ONLY_EVENTS.includes(event)) continue;
     for (const [lang, text] of Object.entries(langs)) {
+      if (ONLY_LANGS && !ONLY_LANGS.includes(lang)) continue;
       entries.push({ event, lang, text });
     }
   }
 
   console.log(`Generating ${entries.length} voice files...\n`);
 
+  let generated = 0;
+  let skipped = 0;
+  let failed = 0;
+
   for (const { event, lang, text } of entries) {
     const langDir = path.join(OUTPUT_DIR, lang);
     fs.mkdirSync(langDir, { recursive: true });
     const outPath = path.join(langDir, `${event}.mp3`);
 
-    if (fs.existsSync(outPath)) {
+    if (!FORCE && fs.existsSync(outPath)) {
       console.log(`  SKIP  ${lang}/${event}.mp3 (already exists)`);
+      skipped++;
       continue;
     }
 
     process.stdout.write(`  GEN   ${lang}/${event}.mp3 ... `);
     try {
-      await synthesize(text, outPath);
+      await synthesize(text, outPath, voiceId, modelId, voiceSettings);
       console.log('OK');
+      generated++;
     } catch (err) {
       console.log(`FAIL: ${err.message}`);
+      failed++;
     }
     // Rate limit: ~2 requests/sec to be safe
     await new Promise((r) => setTimeout(r, 600));
   }
 
-  console.log('\nDone!');
+  console.log(`\nDone! Generated: ${generated}, Skipped: ${skipped}, Failed: ${failed}`);
 }
 
 main().catch((err) => {

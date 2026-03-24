@@ -1,0 +1,53 @@
+# Custom Voice Configuration for Muji
+# =====================================
+# Copy this file and customize it to generate your own voice files.
+#
+# Usage:
+#   ELEVENLABS_API_KEY=sk_xxx node scripts/tools/generate-voices.js --config config/my-voices.yaml
+#
+# Get your API key: https://elevenlabs.io/app/settings/api-keys
+# Browse voices:    https://elevenlabs.io/app/voice-library
+
+# Your ElevenLabs voice ID (find it in the voice settings page)
+voice_id: "NYYvfgcWTZs3NndsUIuq"
+
+# Model to use for synthesis
+# Options: eleven_multilingual_v2 (best quality, multilingual)
+#          eleven_flash_v2_5 (faster, cheaper)
+#          eleven_turbo_v2_5 (fastest)
+model_id: "eleven_multilingual_v2"
+
+# Voice tuning parameters
+voice_settings:
+  stability: 0.5          # 0.0 = more variable, 1.0 = more stable
+  similarity_boost: 0.75  # 0.0 = more creative, 1.0 = closer to original
+  style: 0.3              # 0.0 = neutral, 1.0 = exaggerated style
+  use_speaker_boost: true  # Enhance voice clarity
+
+# Custom messages to generate
+# Format: event_name -> language -> text
+# These will be merged with the default messages.
+# Files are saved to sounds/voices/{lang}/{event_name}.mp3
+messages:
+  # Override existing messages with your own text
+  session_start:
+    en: "Hey, ready to code?"
+    ko: "안녕, 코딩 시작할까?"
+
+  session_end:
+    en: "Nice work. See you next time."
+    ko: "잘했어. 다음에 또 보자."
+
+  # Add completely new custom events
+  # Reference them in config/default.yaml under wellness.idle.messages or wellness.hourly.messages
+  idle_custom_01:
+    en: "You should take a coffee break."
+    ko: "커피 한 잔 하고 와."
+
+  idle_custom_02:
+    en: "Remember to check your posture."
+    ko: "자세 확인 한번 해봐."
+
+  hourly_custom_01:
+    en: "Another productive hour. Keep it up!"
+    ko: "또 한 시간 잘 보냈네. 계속 가자!"
