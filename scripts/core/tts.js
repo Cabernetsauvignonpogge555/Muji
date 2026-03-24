@@ -111,13 +111,13 @@ class TTSEngine {
         return `tts --text "${safeText}" --model_name "${model}" --out_path "${outPath}"`;
       }
       case 'espeak':
-        return `espeak-ng -v ${voice || lang} -w "${outPath}" "${safeText}"`;
+        return `espeak-ng -v "${voice || lang}" -w "${outPath}" "${safeText}"`;
       case 'system':
         if (process.platform === 'darwin') {
           const aiffPath = outPath.replace(/\.\w+$/, '.aiff');
           return `say -v "${voice || lang}" -o "${aiffPath}" "${safeText}" && ffmpeg -y -i "${aiffPath}" "${outPath}" 2>/dev/null && rm -f "${aiffPath}"`;
         }
-        return `pico2wave -l ${voice || lang} -w "${outPath}" "${safeText}" 2>/dev/null || espeak-ng -v ${voice || lang} -w "${outPath}" "${safeText}"`;
+        return `pico2wave -l "${voice || lang}" -w "${outPath}" "${safeText}" 2>/dev/null || espeak-ng -v "${voice || lang}" -w "${outPath}" "${safeText}"`;
       default:
         throw new Error(`Unknown TTS engine: ${engine}`);
     }

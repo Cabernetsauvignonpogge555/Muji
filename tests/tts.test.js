@@ -66,7 +66,30 @@ describe('TTSEngine', () => {
     const tts = new TTSEngine(createMockConfig());
     const cmd = tts._buildCommand('espeak', 'Hello', 'en', '/tmp/out.wav', 'en');
     assert.ok(cmd.includes('espeak'));
-    assert.ok(cmd.includes('-v en'));
+    assert.ok(cmd.includes('-v "en"'));
+  });
+
+  it('quotes voice in espeak command to prevent shell injection', () => {
+    const TTSEngine = require('../scripts/core/tts.js');
+    const tts = new TTSEngine(createMockConfig());
+    const cmd = tts._buildCommand('espeak', 'Hello', 'en+f3', '/tmp/out.wav', 'en');
+    assert.ok(cmd.includes('-v "en+f3"'), 'espeak voice should be quoted');
+  });
+
+  it('quotes voice in pico2wave/system-linux command to prevent shell injection', () => {
+    const TTSEngine = require('../scripts/core/tts.js');
+    const tts = new TTSEngine(createMockConfig());
+    // Build a system command for Linux (non-darwin)
+    const origPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+    Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+    try {
+      const cmd = tts._buildCommand('system', 'Hello', 'en-US', '/tmp/out.mp3', 'en');
+      assert.ok(cmd.includes('-l "en-US"'), 'pico2wave voice should be quoted');
+      assert.ok(cmd.includes('-v "en-US"'), 'espeak-ng fallback voice should be quoted');
+    } finally {
+      if (origPlatform) Object.defineProperty(process, 'platform', origPlatform);
+      else Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+    }
   });
 
   it('escapes double quotes in text for edge-tts command', () => {

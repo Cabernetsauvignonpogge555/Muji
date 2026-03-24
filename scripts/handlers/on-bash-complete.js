@@ -40,8 +40,11 @@ function commandMatchesPattern(command, pattern) {
   }
   for (const tc of patterns.test_commands || []) {
     if (commandMatchesPattern(command, tc)) {
+      const exitCode = input?.tool_response?.exit_code;
       const failIndicators = ['FAIL', 'FAILED', 'failure', 'Error', 'error'];
-      const hasFail = failIndicators.some((f) => stderr.includes(f) || stdout.includes(f));
+      const hasFail = exitCode !== undefined
+        ? exitCode !== 0
+        : failIndicators.some((f) => stderr.includes(f) || stdout.includes(f));
       if (hasFail) {
         const countMatch = (stderr + stdout).match(/(\d+)\s+fail/i);
         const count = countMatch ? parseInt(countMatch[1], 10) : 1;
