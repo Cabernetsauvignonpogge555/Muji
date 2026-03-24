@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎧 Chill Focus Mate
+# 🎧 Muji
 
 ### Your AI coding companion with ambient vibes
 
@@ -25,7 +25,7 @@ Ambient music + Voice notifications + Audio ducking + Pomodoro timer + AI resear
 
 Developers spend hours in the terminal with Claude Code, but the experience is **silent and disconnected**. No ambient atmosphere, no audio feedback, no sense of time passing. You finish a 3-hour session feeling drained without knowing why.
 
-**Chill Focus Mate** transforms Claude Code sessions into an immersive, productivity-enhancing environment. It's like having a co-working space — with Lo-Fi beats, gentle voice notifications that tell you when things succeed or fail, and a Pomodoro timer that reminds you to take breaks.
+**Muji** transforms Claude Code sessions into an immersive, productivity-enhancing environment. It's like having a co-working space — with Lo-Fi beats, gentle voice notifications that tell you when things succeed or fail, and a Pomodoro timer that reminds you to take breaks.
 
 - 🎵 **Background music** — Stream Lo-Fi, Jazz, Nature, or Classical from YouTube. Or play your own files.
 - 🔔 **Context-aware notifications** — Hear when your git push succeeds, your build fails, or your tests break.
@@ -112,8 +112,8 @@ sudo apt install mpv socat
 pip install yt-dlp edge-tts
 
 # 2. Clone and install
-git clone https://github.com/JSLEEKR/Muji.git ~/.claude/plugins/chill-focus-mate
-cd ~/.claude/plugins/chill-focus-mate
+git clone https://github.com/JSLEEKR/Muji.git ~/.claude/plugins/muji
+cd ~/.claude/plugins/muji
 npm install
 
 # 3. Check everything is ready
@@ -125,7 +125,7 @@ npm run setup
 The setup script scans your system and reports:
 
 ```
-=== Chill Focus Mate Setup ===
+=== Muji Setup ===
 
 Checking required dependencies...
   [OK] mpv
@@ -137,9 +137,9 @@ Checking TTS engines...
   [--] espeak-ng
   [OK] system (macOS say)
 
-Config directory: /Users/you/.claude/.chill-focus-mate
+Config directory: /Users/you/.claude/.muji
   Copied default config to user config
-  TTS cache: /Users/you/.claude/.chill-focus-mate/tts-cache
+  TTS cache: /Users/you/.claude/.muji/tts-cache
 
 === Setup Complete ===
 All dependencies found. Ready to use!
@@ -234,7 +234,7 @@ Dispatch background research tasks to the `research-mate` subagent.
 **How it works:**
 1. The subagent launches in a separate context
 2. It searches the web and summarizes findings
-3. Results are saved to `/tmp/cfm-research-output.md`
+3. Results are saved to `/tmp/muji-research-output.md`
 4. When done, you hear a knock sound + "Research is ready."
 5. Ask Claude about the results or read the file directly
 
@@ -330,8 +330,8 @@ The timer runs as a **detached Node.js daemon** managed via PID file. This means
 ### Process Management
 
 ```
-/tmp/cfm-pomodoro.pid          ← PID of the daemon process
-/tmp/cfm-pomodoro-status.json  ← current state (polled by /timer status)
+/tmp/muji-pomodoro.pid          ← PID of the daemon process
+/tmp/muji-pomodoro-status.json  ← current state (polled by /timer status)
 ```
 
 On Windows, these files are stored in `%TEMP%` instead of `/tmp/`.
@@ -383,7 +383,7 @@ Text → Engine → Audio File → Cache → mpv Playback
          └── system (macOS say / Linux spd-say)
 ```
 
-Cache key: `SHA256(engine + voice + text)` → stored at `~/.claude/.chill-focus-mate/tts-cache/`
+Cache key: `SHA256(engine + voice + text)` → stored at `~/.claude/.muji/tts-cache/`
 
 If the primary engine fails, the fallback engine is tried automatically.
 
@@ -394,7 +394,7 @@ If the primary engine fails, the fallback engine is tried automatically.
 ### Config Location
 
 ```
-~/.claude/.chill-focus-mate/config.yaml
+~/.claude/.muji/config.yaml
 ```
 
 If the file doesn't exist, `config/default.yaml` is used. Create the user file to override only the keys you care about — the loader **deep-merges** both files (your overrides take priority, everything else falls back to defaults).
@@ -463,7 +463,7 @@ sfx:
 ### Example: Minimal Override
 
 ```yaml
-# ~/.claude/.chill-focus-mate/config.yaml
+# ~/.claude/.muji/config.yaml
 # Only override what you want — everything else uses defaults
 
 language: ko
@@ -522,7 +522,7 @@ tts:
 ### Windows Notes
 
 On native Windows:
-- mpv IPC uses named pipes (`\\.\pipe\cfm-bgm-socket`) instead of Unix domain sockets
+- mpv IPC uses named pipes (`\\.\pipe\muji-bgm-socket`) instead of Unix domain sockets
 - PID/status files go to `%TEMP%` instead of `/tmp/`
 - `socat` is not required (and not checked by setup script)
 - Install mpv from [mpv.io](https://mpv.io/installation/)
@@ -532,7 +532,7 @@ On native Windows:
 ## 📁 Project Structure
 
 ```
-chill-focus-mate/
+muji/
 ├── .claude-plugin/
 │   └── plugin.json              # Plugin metadata (name, version, commands, agents)
 ├── commands/

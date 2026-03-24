@@ -25,7 +25,7 @@ function checkCommand(cmd) {
 }
 
 function main() {
-  console.log('=== Chill Focus Mate Setup ===\n');
+  console.log('=== Muji Setup ===\n');
 
   console.log('Checking required dependencies...');
   let allOk = true;
@@ -69,7 +69,7 @@ function main() {
     console.log('    pip install edge-tts  (recommended, free, natural voices)');
   }
 
-  const configDir = path.join(os.homedir(), '.claude', '.chill-focus-mate');
+  const configDir = path.join(os.homedir(), '.claude', '.muji');
   fs.mkdirSync(configDir, { recursive: true });
   console.log(`\nConfig directory: ${configDir}`);
 

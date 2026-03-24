@@ -30,7 +30,7 @@ Manage pomodoro work/break timer.
 5. For `pause`/`resume`: Signal the daemon.
    Respond: "Timer paused." / "Timer resumed."
 
-6. For `status`: Read `/tmp/cfm-pomodoro-status.json` and display:
+6. For `status`: Read `/tmp/muji-pomodoro-status.json` and display:
    - Current phase (work/break/stopped)
    - Time remaining
    - Session number

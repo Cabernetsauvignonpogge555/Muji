@@ -1,4 +1,4 @@
-# Chill Focus Mate Implementation Plan
+# Muji Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -10,14 +10,14 @@
 
 **Spec:** `DESIGN.md` in project root.
 
-**Platform note:** Windows uses named pipes (`\\.\pipe\cfm-bgm-socket`) instead of Unix sockets. PID files go to `%TEMP%` on Windows instead of `/tmp/`. The code detects platform and adapts paths accordingly.
+**Platform note:** Windows uses named pipes (`\\.\pipe\muji-bgm-socket`) instead of Unix sockets. PID files go to `%TEMP%` on Windows instead of `/tmp/`. The code detects platform and adapts paths accordingly.
 
 ---
 
 ## File Structure
 
 ```
-chill-focus-mate/
+muji/
 ├── package.json                          # Project metadata & dependencies
 ├── .claude-plugin/
 │   └── plugin.json                       # Claude Code plugin metadata
@@ -92,7 +92,7 @@ git init
 ```json
 // package.json
 {
-  "name": "chill-focus-mate",
+  "name": "muji",
   "version": "0.1.0",
   "description": "AI-powered coding companion with ambient music, TTS notifications, and pomodoro timer for Claude Code",
   "main": "scripts/core/config.js",
@@ -125,7 +125,7 @@ mkdir -p .claude-plugin
 ```json
 // .claude-plugin/plugin.json
 {
-  "name": "chill-focus-mate",
+  "name": "muji",
   "version": "0.1.0",
   "description": "Ambient music, TTS notifications, pomodoro timer, and AI research companion for Claude Code",
   "author": "",
@@ -147,8 +147,8 @@ Copy the full default configuration from DESIGN.md Section 4.2 into `config/defa
 These are listed in the Event Map (DESIGN.md Section 10) but were omitted from the config template.
 
 **Platform adaptation:** In the `advanced` and `bgm.mpv` sections, paths must be cross-platform:
-- `socket_path`: Use `/tmp/cfm-bgm-socket` on Unix, `\\.\pipe\cfm-bgm-socket` on Windows
-- `pid_file`: Use `/tmp/cfm-pomodoro.pid` on Unix, `%TEMP%/cfm-pomodoro.pid` on Windows
+- `socket_path`: Use `/tmp/muji-bgm-socket` on Unix, `\\.\pipe\muji-bgm-socket` on Windows
+- `pid_file`: Use `/tmp/muji-pomodoro.pid` on Unix, `%TEMP%/muji-pomodoro.pid` on Windows
 - These are resolved at runtime by config.js, so the YAML stores the Unix defaults.
 
 - [ ] **Step 4: Install dependencies**
@@ -272,7 +272,7 @@ describe('Config', () => {
     config.load();
 
     const pidPath = config.getPidPath();
-    assert.ok(pidPath.includes('cfm-pomodoro'));
+    assert.ok(pidPath.includes('muji-pomodoro'));
   });
 });
 ```
@@ -343,19 +343,19 @@ class Config {
 
   getSocketPath() {
     if (process.platform === 'win32') {
-      return '\\\\.\\pipe\\cfm-bgm-socket';
+      return '\\\\.\\pipe\\muji-bgm-socket';
     }
-    return this.get('bgm.mpv.socket_path') || '/tmp/cfm-bgm-socket';
+    return this.get('bgm.mpv.socket_path') || '/tmp/muji-bgm-socket';
   }
 
   getPidPath() {
     const tmpDir = process.platform === 'win32' ? os.tmpdir() : '/tmp';
-    return path.join(tmpDir, 'cfm-pomodoro.pid');
+    return path.join(tmpDir, 'muji-pomodoro.pid');
   }
 
   getStatusPath() {
     const tmpDir = process.platform === 'win32' ? os.tmpdir() : '/tmp';
-    return path.join(tmpDir, 'cfm-pomodoro-status.json');
+    return path.join(tmpDir, 'muji-pomodoro-status.json');
   }
 
   getPluginDir() {
@@ -366,12 +366,12 @@ class Config {
     const required = ['language', 'tts', 'bgm', 'sfx', 'notifications', 'pomodoro'];
     for (const key of required) {
       if (!config[key]) {
-        console.warn(`[CFM] Config missing required section: ${key}`);
+        console.warn(`[Muji] Config missing required section: ${key}`);
       }
     }
     if (config.bgm?.volume !== undefined) {
       if (config.bgm.volume < 0 || config.bgm.volume > 100) {
-        console.warn('[CFM] bgm.volume must be 0-100, clamping');
+        console.warn('[Muji] bgm.volume must be 0-100, clamping');
         config.bgm.volume = Math.max(0, Math.min(100, config.bgm.volume));
       }
     }
@@ -385,7 +385,7 @@ class Config {
 
   _loadUser() {
     const home = os.homedir();
-    const userPath = path.join(home, '.claude', '.chill-focus-mate', 'config.yaml');
+    const userPath = path.join(home, '.claude', '.muji', 'config.yaml');
     if (!fs.existsSync(userPath)) return null;
     const content = fs.readFileSync(userPath, 'utf8');
     return YAML.parse(content);
@@ -469,7 +469,7 @@ function createMockConfig() {
       };
       return sources[mode] || [];
     },
-    getSocketPath: () => '\\\\.\\pipe\\cfm-bgm-test',
+    getSocketPath: () => '\\\\.\\pipe\\muji-bgm-test',
     getPluginDir: () => __dirname,
   };
 }
@@ -643,20 +643,20 @@ class BGMManager {
         });
 
         this._process.on('error', (err) => {
-          console.error('[CFM] mpv error:', err.message);
+          console.error('[Muji] mpv error:', err.message);
           this._process = null;
           if (!this._restartAttempted) {
             this._restartAttempted = true;
-            console.warn('[CFM] Attempting mpv restart...');
+            console.warn('[Muji] Attempting mpv restart...');
             this._spawnMpv(source).catch(() => {
-              console.error('[CFM] mpv restart failed. BGM disabled.');
+              console.error('[Muji] mpv restart failed. BGM disabled.');
             });
           }
         });
 
         this._process.on('exit', (code) => {
           if (code !== 0 && code !== null) {
-            console.warn(`[CFM] mpv exited with code ${code}`);
+            console.warn(`[Muji] mpv exited with code ${code}`);
           }
           this._process = null;
         });
@@ -664,7 +664,7 @@ class BGMManager {
         // Give mpv a moment to start and open the IPC socket
         setTimeout(resolve, 500);
       } catch (err) {
-        console.error('[CFM] Failed to spawn mpv:', err.message);
+        console.error('[Muji] Failed to spawn mpv:', err.message);
         reject(err);
       }
     });
@@ -917,7 +917,7 @@ class TTSEngine {
     this._fallback = config.get('tts.fallback_engine') || 'system';
     this._cacheEnabled = config.get('tts.cache_enabled') !== false;
     this._cacheDir = config.get('tts.cache_dir')?.replace('~', os.homedir())
-      || path.join(os.homedir(), '.claude', '.chill-focus-mate', 'tts-cache');
+      || path.join(os.homedir(), '.claude', '.muji', 'tts-cache');
     this._cacheMaxMb = config.get('tts.cache_max_mb') || 200;
   }
 
@@ -932,7 +932,7 @@ class TTSEngine {
     }
 
     const ext = this._engine === 'espeak' ? 'wav' : 'mp3';
-    const outPath = path.join(os.tmpdir(), `cfm-tts-${Date.now()}.${ext}`);
+    const outPath = path.join(os.tmpdir(), `muji-tts-${Date.now()}.${ext}`);
 
     try {
       const cmd = this._buildCommand(this._engine, text, voice, outPath);
@@ -943,7 +943,7 @@ class TTSEngine {
       }
       return outPath;
     } catch (err) {
-      console.warn(`[CFM] TTS engine '${this._engine}' failed:`, err.message);
+      console.warn(`[Muji] TTS engine '${this._engine}' failed:`, err.message);
       // Try fallback
       if (this._fallback && this._fallback !== this._engine) {
         const fbVoice = this._resolveVoice(this._fallback, lang);
@@ -952,7 +952,7 @@ class TTSEngine {
           execSync(cmd, { timeout: 15000, stdio: 'pipe' });
           return outPath;
         } catch (fbErr) {
-          console.error(`[CFM] Fallback TTS '${this._fallback}' also failed:`, fbErr.message);
+          console.error(`[Muji] Fallback TTS '${this._fallback}' also failed:`, fbErr.message);
         }
       }
       return null;
@@ -980,7 +980,7 @@ class TTSEngine {
 
   async testEngine(engine) {
     const testText = 'test';
-    const outPath = path.join(os.tmpdir(), `cfm-tts-test-${Date.now()}.mp3`);
+    const outPath = path.join(os.tmpdir(), `muji-tts-test-${Date.now()}.mp3`);
     const voice = this._resolveVoice(engine, 'en');
     try {
       const cmd = this._buildCommand(engine, testText, voice, outPath);
@@ -1067,7 +1067,7 @@ class TTSEngine {
       fs.copyFileSync(audioPath, dest);
       this._cleanCache();
     } catch (err) {
-      console.warn('[CFM] Cache save failed:', err.message);
+      console.warn('[Muji] Cache save failed:', err.message);
     }
   }
 
@@ -1308,7 +1308,7 @@ class Notifier {
   _queueNotification(fn) {
     this._queue = this._queue
       .then(() => fn())
-      .catch((err) => console.error('[CFM] Notification failed:', err.message));
+      .catch((err) => console.error('[Muji] Notification failed:', err.message));
     return this._queue;
   }
 
@@ -1329,7 +1329,7 @@ class Notifier {
 
       proc.on('exit', resolve);
       proc.on('error', (err) => {
-        console.warn('[CFM] Audio playback error:', err.message);
+        console.warn('[Muji] Audio playback error:', err.message);
         resolve();
       });
 
@@ -1562,7 +1562,7 @@ const { bootstrap } = require('./_bootstrap.js');
     try {
       await bgm.start();
     } catch (err) {
-      console.error('[CFM] BGM auto-start failed:', err.message);
+      console.error('[Muji] BGM auto-start failed:', err.message);
     }
   }
 
@@ -1800,8 +1800,8 @@ function createMockConfig() {
       };
       return data[p];
     },
-    getPidPath: () => '/tmp/cfm-test-pomodoro.pid',
-    getStatusPath: () => '/tmp/cfm-test-pomodoro-status.json',
+    getPidPath: () => '/tmp/muji-test-pomodoro.pid',
+    getStatusPath: () => '/tmp/muji-test-pomodoro-status.json',
   };
 }
 
@@ -2155,7 +2155,7 @@ Manage pomodoro work/break timer.
 5. For `pause`/`resume`: Signal the daemon.
    Respond: "Timer paused." / "Timer resumed."
 
-6. For `status`: Read `/tmp/cfm-pomodoro-status.json` and display:
+6. For `status`: Read `/tmp/muji-pomodoro-status.json` and display:
    - Current phase (work/break/stopped)
    - Time remaining
    - Session number
@@ -2249,7 +2249,7 @@ You are a background research assistant. Your job is to:
 - Prioritize recent sources (last 12 months)
 - Keep summaries concise: max 500 words
 - Include source URLs for verification
-- Save output to /tmp/cfm-research-output.md
+- Save output to /tmp/muji-research-output.md
 
 ## Output Format
 # Research: {topic}
@@ -2287,13 +2287,13 @@ Dispatch background research tasks to a subagent.
 3. Launch the `research-mate` subagent with the topic as context:
    - The subagent runs in a separate context
    - It performs web search and summarization
-   - Results are saved to /tmp/cfm-research-output.md
+   - Results are saved to /tmp/muji-research-output.md
 
 4. When the subagent completes, the TeammateIdle hook fires,
    which plays the `subagent_done` notification.
 
 5. The user can then ask about the research results. The main
-   Claude session can read /tmp/cfm-research-output.md.
+   Claude session can read /tmp/muji-research-output.md.
 
 6. If no topic provided, show usage help.
 ```
@@ -2398,7 +2398,7 @@ function checkCommand(cmd) {
 }
 
 function main() {
-  console.log('=== Chill Focus Mate Setup ===\n');
+  console.log('=== Muji Setup ===\n');
 
   // 1. Check required dependencies
   console.log('Checking required dependencies...');
@@ -2445,7 +2445,7 @@ function main() {
   }
 
   // 3. Create config directory
-  const configDir = path.join(os.homedir(), '.claude', '.chill-focus-mate');
+  const configDir = path.join(os.homedir(), '.claude', '.muji');
   fs.mkdirSync(configDir, { recursive: true });
   console.log(`\nConfig directory: ${configDir}`);
 
@@ -2500,12 +2500,12 @@ const os = require('node:os');
 const path = require('node:path');
 
 function main() {
-  console.log('=== Chill Focus Mate Reset ===\n');
+  console.log('=== Muji Reset ===\n');
 
   const tmpDir = process.platform === 'win32' ? os.tmpdir() : '/tmp';
 
   // Kill pomodoro daemon
-  const pidPath = path.join(tmpDir, 'cfm-pomodoro.pid');
+  const pidPath = path.join(tmpDir, 'muji-pomodoro.pid');
   try {
     if (fs.existsSync(pidPath)) {
       const pid = parseInt(fs.readFileSync(pidPath, 'utf8').trim(), 10);
@@ -2521,12 +2521,12 @@ function main() {
   }
 
   // Remove status file
-  const statusPath = path.join(tmpDir, 'cfm-pomodoro-status.json');
+  const statusPath = path.join(tmpDir, 'muji-pomodoro-status.json');
   try { fs.unlinkSync(statusPath); } catch { /* ignore */ }
 
   // Remove mpv socket (Unix only)
   if (process.platform !== 'win32') {
-    const socketPath = '/tmp/cfm-bgm-socket';
+    const socketPath = '/tmp/muji-bgm-socket';
     try { fs.unlinkSync(socketPath); } catch { /* ignore */ }
     console.log('Removed mpv socket.');
   }
@@ -2537,7 +2537,7 @@ function main() {
     if (process.platform === 'win32') {
       require('node:child_process').execSync('taskkill /f /im mpv.exe 2>nul', { stdio: 'pipe' });
     } else {
-      require('node:child_process').execSync("pkill -f 'mpv.*cfm-bgm-socket' 2>/dev/null || true", { stdio: 'pipe' });
+      require('node:child_process').execSync("pkill -f 'mpv.*muji-bgm-socket' 2>/dev/null || true", { stdio: 'pipe' });
     }
     console.log('Killed mpv processes.');
   } catch {
@@ -2545,7 +2545,7 @@ function main() {
   }
 
   // Remove research output
-  const researchPath = path.join(tmpDir, 'cfm-research-output.md');
+  const researchPath = path.join(tmpDir, 'muji-research-output.md');
   try { fs.unlinkSync(researchPath); } catch { /* ignore */ }
 
   console.log('\n=== Reset Complete ===');

@@ -1,4 +1,4 @@
-# Chill Focus Mate — Design Document
+# Muji — Design Document
 
 > A Claude Code plugin that combines ambient background music (YouTube/local), context-aware audio ducking, TTS/SFX notifications, pomodoro timer, and an AI research subagent into a seamless coding companion experience.
 
@@ -8,7 +8,7 @@
 
 ### 1.1 Vision
 
-Developers spend hours in the terminal with Claude Code, but the experience is silent and disconnected. **Chill Focus Mate** transforms Claude Code sessions into an immersive, productivity-enhancing environment by:
+Developers spend hours in the terminal with Claude Code, but the experience is silent and disconnected. **Muji** transforms Claude Code sessions into an immersive, productivity-enhancing environment by:
 
 - Playing continuous background music (YouTube streams or local files) via `mpv`
 - Delivering context-aware TTS announcements and sound effects on key events
@@ -18,7 +18,7 @@ Developers spend hours in the terminal with Claude Code, but the experience is s
 
 ### 1.2 Name
 
-**Chill Focus Mate** (package name: `chill-focus-mate`)
+**Muji** (package name: `muji`)
 
 ### 1.3 Target Platform
 
@@ -77,14 +77,14 @@ MIT
 - **BGM**: A single long-running `mpv` process with `--input-ipc-server` for runtime control
 - **SFX**: Short-lived `mpv` instances per sound effect (fire-and-forget)
 - **TTS**: Generate audio file → play via short-lived `mpv` instance
-- **Pomodoro**: A background Node.js process managed via PID file (`/tmp/cfm-pomodoro.pid`)
+- **Pomodoro**: A background Node.js process managed via PID file (`/tmp/muji-pomodoro.pid`)
 
 ---
 
 ## 3. Plugin Structure
 
 ```
-chill-focus-mate/
+muji/
 ├── .claude-plugin/
 │   └── plugin.json              # Plugin metadata
 ├── commands/
@@ -139,7 +139,7 @@ chill-focus-mate/
 ### 4.1 Config File Location
 
 ```
-~/.claude/.chill-focus-mate/config.yaml
+~/.claude/.muji/config.yaml
 ```
 
 Falls back to `config/default.yaml` if user config doesn't exist.
@@ -148,7 +148,7 @@ Falls back to `config/default.yaml` if user config doesn't exist.
 
 ```yaml
 # ============================================================
-# Chill Focus Mate — Configuration
+# Muji — Configuration
 # ============================================================
 
 # ----------------------------------------------------------
@@ -173,7 +173,7 @@ tts:
   fallback_engine: system        # Fallback if primary fails
   
   cache_enabled: true            # Cache generated TTS audio files
-  cache_dir: ~/.claude/.chill-focus-mate/tts-cache
+  cache_dir: ~/.claude/.muji/tts-cache
   cache_max_mb: 200              # Max cache size in MB
 
   # Per-engine configuration
@@ -265,7 +265,7 @@ bgm:
   
   # mpv configuration
   mpv:
-    socket_path: /tmp/cfm-bgm-socket
+    socket_path: /tmp/muji-bgm-socket
     extra_args:
       - "--no-video"
       - "--really-quiet"
@@ -417,8 +417,8 @@ focus_modes:
 # Advanced
 # ----------------------------------------------------------
 advanced:
-  pid_file: /tmp/cfm-pomodoro.pid
-  log_file: ~/.claude/.chill-focus-mate/cfm.log
+  pid_file: /tmp/muji-pomodoro.pid
+  log_file: ~/.claude/.muji/muji.log
   log_level: warn                 # debug, info, warn, error
   
   # Pattern detection for bash commands
@@ -540,34 +540,34 @@ class TTSEngine {
 
 ```bash
 # edge-tts (Python package)
-edge-tts --voice "en-US-AriaNeural" --text "Hello" --write-media /tmp/cfm-tts.mp3
+edge-tts --voice "en-US-AriaNeural" --text "Hello" --write-media /tmp/muji-tts.mp3
 
 # ElevenLabs (curl)
 curl -X POST "https://api.elevenlabs.io/v1/text-to-speech/{voice_id}" \
   -H "xi-api-key: {api_key}" \
   -H "Content-Type: application/json" \
   -d '{"text":"Hello","model_id":"eleven_flash_v2_5"}' \
-  --output /tmp/cfm-tts.mp3
+  --output /tmp/muji-tts.mp3
 
 # Coqui TTS (Python package)
-tts --text "Hello" --model_name "tts_models/en/ljspeech/tacotron2-DDC" --out_path /tmp/cfm-tts.wav
+tts --text "Hello" --model_name "tts_models/en/ljspeech/tacotron2-DDC" --out_path /tmp/muji-tts.wav
 
 # espeak-ng
-espeak-ng -v en -w /tmp/cfm-tts.wav "Hello"
+espeak-ng -v en -w /tmp/muji-tts.wav "Hello"
 
 # macOS system
-say -v Samantha -o /tmp/cfm-tts.aiff "Hello"
-# Then convert: ffmpeg -i /tmp/cfm-tts.aiff /tmp/cfm-tts.mp3
+say -v Samantha -o /tmp/muji-tts.aiff "Hello"
+# Then convert: ffmpeg -i /tmp/muji-tts.aiff /tmp/muji-tts.mp3
 
 # Linux system
 spd-say -l en -e "Hello"  # Direct playback, no file output
-# Alternative: pico2wave -l en-US -w /tmp/cfm-tts.wav "Hello"
+# Alternative: pico2wave -l en-US -w /tmp/muji-tts.wav "Hello"
 ```
 
 #### Caching Strategy
 
 Cache key: `SHA256(engine + voice + text)` → filename  
-Storage: `~/.claude/.chill-focus-mate/tts-cache/{hash}.mp3`  
+Storage: `~/.claude/.muji/tts-cache/{hash}.mp3`  
 Eviction: LRU when total size exceeds `cache_max_mb`
 
 ### 5.3 Notifier (`scripts/core/notify.js`)
@@ -667,19 +667,19 @@ The pomodoro timer runs as a daemon process:
 ```bash
 # Start: spawns detached node process
 node scripts/core/pomodoro.js start &
-echo $! > /tmp/cfm-pomodoro.pid
+echo $! > /tmp/muji-pomodoro.pid
 
 # Stop: reads PID and kills
-kill $(cat /tmp/cfm-pomodoro.pid)
+kill $(cat /tmp/muji-pomodoro.pid)
 
 # Status: communicates via temp file
-cat /tmp/cfm-pomodoro-status.json
+cat /tmp/muji-pomodoro-status.json
 ```
 
 #### Communication
 
 The pomodoro daemon communicates with hook handlers via:
-- **Status file**: `/tmp/cfm-pomodoro-status.json` (polled by `/timer status`)
+- **Status file**: `/tmp/muji-pomodoro-status.json` (polled by `/timer status`)
 - **Notifications**: Directly invokes the Notifier module
 
 ### 5.5 Config Loader (`scripts/core/config.js`)
@@ -929,7 +929,7 @@ Manage pomodoro work/break timer.
 ## Implementation
 Communicate with pomodoro daemon via PID file and status file.
 Start spawns a new daemon if not running.
-Status reads /tmp/cfm-pomodoro-status.json.
+Status reads /tmp/muji-pomodoro-status.json.
 ```
 
 ### 7.4 `/mate` — AI Research Companion
@@ -970,7 +970,7 @@ You are a background research assistant. Your job is to:
 - Prioritize recent sources (last 12 months)
 - Keep summaries concise: max 500 words
 - Include source URLs for verification
-- Save output to /tmp/cfm-research-output.md
+- Save output to /tmp/muji-research-output.md
 
 ## Output Format
 # Research: {topic}
@@ -1016,7 +1016,7 @@ Brief paragraph summarizing the most important takeaways.
 Actions:
   1. Check for required dependencies (mpv, yt-dlp, socat)
   2. Check for at least one TTS engine
-  3. Create config directory (~/.claude/.chill-focus-mate/)
+  3. Create config directory (~/.claude/.muji/)
   4. Copy default config if user config doesn't exist
   5. Create TTS cache directory
   6. Test audio playback with a short test sound
@@ -1027,13 +1027,13 @@ Actions:
 
 ```bash
 # From marketplace (when published)
-/plugin install chill-focus-mate
+/plugin install muji
 
 # From GitHub
-/plugin install chill-focus-mate@username/chill-focus-mate
+/plugin install muji@username/muji
 
 # Local development
-claude --plugin-dir ./chill-focus-mate
+claude --plugin-dir ./muji
 ```
 
 ---
@@ -1099,10 +1099,10 @@ claude --plugin-dir ./chill-focus-mate
 
 ```bash
 # Send command
-echo '{"command":["set_property","volume",30]}' | socat - /tmp/cfm-bgm-socket
+echo '{"command":["set_property","volume",30]}' | socat - /tmp/muji-bgm-socket
 
 # Read response
-echo '{"command":["get_property","volume"]}' | socat - /tmp/cfm-bgm-socket
+echo '{"command":["get_property","volume"]}' | socat - /tmp/muji-bgm-socket
 # Response: {"data":30.0,"error":"success"}
 ```
 
@@ -1166,7 +1166,7 @@ ffmpeg -f lavfi -i "sine=frequency=330:duration=0.4" -af "afade=t=out:st=0.2:d=0
 
 ```json
 {
-  "name": "chill-focus-mate",
+  "name": "muji",
   "version": "0.1.0",
   "description": "AI-powered coding companion with ambient music, TTS notifications, and pomodoro timer for Claude Code",
   "main": "scripts/core/config.js",
@@ -1202,7 +1202,7 @@ ffmpeg -f lavfi -i "sine=frequency=330:duration=0.4" -af "afade=t=out:st=0.2:d=0
 
 ```json
 {
-  "name": "chill-focus-mate",
+  "name": "muji",
   "version": "0.1.0",
   "description": "Ambient music, TTS notifications, pomodoro timer, and AI research companion for Claude Code",
   "author": "",

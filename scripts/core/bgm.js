@@ -31,6 +31,8 @@ class BGMManager {
       this._process = null;
     }
     this._currentMode = null;
+    // Reset the restart guard so a subsequent start() gets a clean slate.
+    this._restartAttempted = false;
     this._cleanup();
   }
 
@@ -105,26 +107,28 @@ class BGMManager {
       try {
         this._process = spawn('mpv', args, { stdio: 'ignore', detached: false });
         this._process.on('error', (err) => {
-          console.error('[CFM] mpv error:', err.message);
+          console.error('[Muji] mpv error:', err.message);
           this._process = null;
           if (!this._restartAttempted) {
             this._restartAttempted = true;
             this._spawnMpv(source).then(() => {
               this._restartAttempted = false;
             }).catch(() => {
-              console.error('[CFM] mpv restart failed. BGM disabled.');
+              console.error('[Muji] mpv restart failed. BGM disabled.');
+              // Always reset the flag so future start() calls can attempt restart again.
+              this._restartAttempted = false;
             });
           }
         });
         this._process.on('exit', (code) => {
           if (code !== 0 && code !== null) {
-            console.warn(`[CFM] mpv exited with code ${code}`);
+            console.warn(`[Muji] mpv exited with code ${code}`);
           }
           this._process = null;
         });
         setTimeout(resolve, 500);
       } catch (err) {
-        console.error('[CFM] Failed to spawn mpv:', err.message);
+        console.error('[Muji] Failed to spawn mpv:', err.message);
         reject(err);
       }
     });

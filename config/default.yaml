@@ -1,5 +1,5 @@
 # ============================================================
-# Chill Focus Mate — Configuration
+# Muji — Configuration
 # ============================================================
 
 # ----------------------------------------------------------
@@ -24,7 +24,7 @@ tts:
   fallback_engine: system        # Fallback if primary fails
 
   cache_enabled: true            # Cache generated TTS audio files
-  cache_dir: ~/.claude/.chill-focus-mate/tts-cache
+  cache_dir: ~/.claude/.muji/tts-cache
   cache_max_mb: 200              # Max cache size in MB
 
   # Per-engine configuration
@@ -116,7 +116,7 @@ bgm:
 
   # mpv configuration
   mpv:
-    socket_path: /tmp/cfm-bgm-socket
+    socket_path: /tmp/muji-bgm-socket
     extra_args:
       - "--no-video"
       - "--really-quiet"
@@ -270,8 +270,8 @@ focus_modes:
 # Advanced
 # ----------------------------------------------------------
 advanced:
-  pid_file: /tmp/cfm-pomodoro.pid
-  log_file: ~/.claude/.chill-focus-mate/cfm.log
+  pid_file: /tmp/muji-pomodoro.pid
+  log_file: ~/.claude/.muji/muji.log
   log_level: warn                 # debug, info, warn, error
 
   # Pattern detection for bash commands

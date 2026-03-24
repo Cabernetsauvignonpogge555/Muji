@@ -11,7 +11,7 @@ class TTSEngine {
     this._fallback = config.get('tts.fallback_engine') || 'system';
     this._cacheEnabled = config.get('tts.cache_enabled') !== false;
     this._cacheDir = config.get('tts.cache_dir')?.replace('~', os.homedir())
-      || path.join(os.homedir(), '.claude', '.chill-focus-mate', 'tts-cache');
+      || path.join(os.homedir(), '.claude', '.muji', 'tts-cache');
     this._cacheMaxMb = config.get('tts.cache_max_mb') || 200;
   }
 
@@ -23,7 +23,7 @@ class TTSEngine {
       if (cached) return cached;
     }
     const ext = this._engine === 'espeak' ? 'wav' : 'mp3';
-    const outPath = path.join(os.tmpdir(), `cfm-tts-${Date.now()}.${ext}`);
+    const outPath = path.join(os.tmpdir(), `muji-tts-${Date.now()}.${ext}`);
     try {
       const cmd = this._buildCommand(this._engine, text, voice, outPath);
       execSync(cmd, { timeout: 15000, stdio: 'pipe' });
@@ -32,7 +32,7 @@ class TTSEngine {
       }
       return outPath;
     } catch (err) {
-      console.warn(`[CFM] TTS engine '${this._engine}' failed:`, err.message);
+      console.warn(`[Muji] TTS engine '${this._engine}' failed:`, err.message);
       if (this._fallback && this._fallback !== this._engine) {
         const fbVoice = this._resolveVoice(this._fallback, lang);
         try {
@@ -40,9 +40,12 @@ class TTSEngine {
           execSync(cmd, { timeout: 15000, stdio: 'pipe' });
           return outPath;
         } catch (fbErr) {
-          console.error(`[CFM] Fallback TTS '${this._fallback}' also failed:`, fbErr.message);
+          console.error(`[Muji] Fallback TTS '${this._fallback}' also failed:`, fbErr.message);
         }
       }
+      // Both primary and fallback failed. Remove any partial temp file so it doesn't
+      // get picked up by callers expecting a valid audio file.
+      try { if (fs.existsSync(outPath)) fs.unlinkSync(outPath); } catch { }
       return null;
     }
   }
@@ -62,7 +65,7 @@ class TTSEngine {
 
   async testEngine(engine) {
     const testText = 'test';
-    const outPath = path.join(os.tmpdir(), `cfm-tts-test-${Date.now()}.mp3`);
+    const outPath = path.join(os.tmpdir(), `muji-tts-test-${Date.now()}.mp3`);
     const voice = this._resolveVoice(engine, 'en');
     try {
       const cmd = this._buildCommand(engine, testText, voice, outPath);
@@ -80,11 +83,14 @@ class TTSEngine {
   _buildCommand(engine, text, voice, outPath) {
     // Sanitize text for safe embedding in shell double-quoted strings.
     // Escape backslash first, then double-quote, then $ and backtick (Unix shell expansion).
+    // Replace newlines/carriage-returns with a space — a literal newline inside a
+    // double-quoted shell string terminates the argument on most shells/platforms.
     const safeText = text
       .replace(/\\/g, '\\\\')
       .replace(/"/g, '\\"')
       .replace(/\$/g, '\\$')
-      .replace(/`/g, '\\`');
+      .replace(/`/g, '\\`')
+      .replace(/\r?\n|\r/g, ' ');
     switch (engine) {
       case 'edge-tts':
         return `edge-tts --voice "${voice}" --text "${safeText}" --write-media "${outPath}"`;
@@ -141,19 +147,28 @@ class TTSEngine {
       fs.mkdirSync(this._cacheDir, { recursive: true });
       fs.copyFileSync(audioPath, dest);
       this._cleanCache();
-    } catch (err) { console.warn('[CFM] Cache save failed:', err.message); }
+    } catch (err) { console.warn('[Muji] Cache save failed:', err.message); }
   }
 
   _cleanCache() {
     try {
       const files = fs.readdirSync(this._cacheDir)
-        .map((f) => { const fp = path.join(this._cacheDir, f); const stat = fs.statSync(fp); return { path: fp, size: stat.size, mtime: stat.mtimeMs }; })
+        .map((f) => {
+          const fp = path.join(this._cacheDir, f);
+          // Guard against TOCTOU: file may be deleted between readdirSync and statSync.
+          // If statSync throws, skip this file rather than aborting the entire cleanup.
+          try {
+            const stat = fs.statSync(fp);
+            return { path: fp, size: stat.size, mtime: stat.mtimeMs };
+          } catch { return null; }
+        })
+        .filter(Boolean)
         .sort((a, b) => b.mtime - a.mtime);
       let totalBytes = files.reduce((s, f) => s + f.size, 0);
       const maxBytes = this._cacheMaxMb * 1024 * 1024;
       while (totalBytes > maxBytes && files.length > 0) {
         const old = files.pop();
-        fs.unlinkSync(old.path);
+        try { fs.unlinkSync(old.path); } catch { }
         totalBytes -= old.size;
       }
     } catch { }

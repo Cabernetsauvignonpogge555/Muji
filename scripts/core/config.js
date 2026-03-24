@@ -53,19 +53,19 @@ class Config {
 
   getSocketPath() {
     if (process.platform === 'win32') {
-      return '\\\\.\\pipe\\cfm-bgm-socket';
+      return '\\\\.\\pipe\\muji-bgm-socket';
     }
-    return this.get('bgm.mpv.socket_path') || '/tmp/cfm-bgm-socket';
+    return this.get('bgm.mpv.socket_path') || '/tmp/muji-bgm-socket';
   }
 
   getPidPath() {
     const tmpDir = process.platform === 'win32' ? os.tmpdir() : '/tmp';
-    return path.join(tmpDir, 'cfm-pomodoro.pid');
+    return path.join(tmpDir, 'muji-pomodoro.pid');
   }
 
   getStatusPath() {
     const tmpDir = process.platform === 'win32' ? os.tmpdir() : '/tmp';
-    return path.join(tmpDir, 'cfm-pomodoro-status.json');
+    return path.join(tmpDir, 'muji-pomodoro-status.json');
   }
 
   getPluginDir() {
@@ -76,12 +76,12 @@ class Config {
     const required = ['language', 'tts', 'bgm', 'sfx', 'notifications', 'pomodoro'];
     for (const key of required) {
       if (!config[key]) {
-        console.warn(`[CFM] Config missing required section: ${key}`);
+        console.warn(`[Muji] Config missing required section: ${key}`);
       }
     }
     if (config.bgm?.volume !== undefined) {
       if (config.bgm.volume < 0 || config.bgm.volume > 100) {
-        console.warn('[CFM] bgm.volume must be 0-100, clamping');
+        console.warn('[Muji] bgm.volume must be 0-100, clamping');
         config.bgm.volume = Math.max(0, Math.min(100, config.bgm.volume));
       }
     }
@@ -95,13 +95,13 @@ class Config {
 
   _loadUser() {
     const home = os.homedir();
-    const userPath = path.join(home, '.claude', '.chill-focus-mate', 'config.yaml');
+    const userPath = path.join(home, '.claude', '.muji', 'config.yaml');
     if (!fs.existsSync(userPath)) return null;
     try {
       const content = fs.readFileSync(userPath, 'utf8');
       return YAML.parse(content);
     } catch (err) {
-      console.warn(`[CFM] Failed to load user config (${userPath}): ${err.message}. Using defaults.`);
+      console.warn(`[Muji] Failed to load user config (${userPath}): ${err.message}. Using defaults.`);
       return null;
     }
   }

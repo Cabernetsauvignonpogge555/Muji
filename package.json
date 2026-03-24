@@ -1,5 +1,5 @@
 {
-  "name": "chill-focus-mate",
+  "name": "muji",
   "version": "0.1.0",
   "description": "AI-powered coding companion with ambient music, TTS notifications, and pomodoro timer for Claude Code",
   "main": "scripts/core/config.js",

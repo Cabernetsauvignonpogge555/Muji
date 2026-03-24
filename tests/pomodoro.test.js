@@ -5,8 +5,8 @@ const os = require('node:os');
 const path = require('node:path');
 
 const tmpDir = os.tmpdir();
-const TEST_PID_PATH = path.join(tmpDir, 'cfm-test-pomodoro.pid');
-const TEST_STATUS_PATH = path.join(tmpDir, 'cfm-test-pomodoro-status.json');
+const TEST_PID_PATH = path.join(tmpDir, 'muji-test-pomodoro.pid');
+const TEST_STATUS_PATH = path.join(tmpDir, 'muji-test-pomodoro-status.json');
 
 function createMockConfig() {
   return {

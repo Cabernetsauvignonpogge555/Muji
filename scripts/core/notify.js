@@ -58,7 +58,7 @@ class Notifier {
   }
 
   _queueNotification(fn) {
-    this._queue = this._queue.then(() => fn()).catch((err) => console.error('[CFM] Notification failed:', err.message));
+    this._queue = this._queue.then(() => fn()).catch((err) => console.error('[Muji] Notification failed:', err.message));
     return this._queue;
   }
 
@@ -78,7 +78,7 @@ class Notifier {
       args.push(filePath);
       const proc = spawn('mpv', args, { stdio: 'ignore' });
       proc.on('exit', done);
-      proc.on('error', (err) => { console.warn('[CFM] Audio playback error:', err.message); done(); });
+      proc.on('error', (err) => { console.warn('[Muji] Audio playback error:', err.message); done(); });
       const timer = setTimeout(() => { try { proc.kill(); } catch { } done(); }, 30000);
     });
   }

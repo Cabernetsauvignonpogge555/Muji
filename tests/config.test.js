@@ -88,7 +88,7 @@ describe('Config', () => {
     const config = new Config();
     config.load();
     const pidPath = config.getPidPath();
-    assert.ok(pidPath.includes('cfm-pomodoro'));
+    assert.ok(pidPath.includes('muji-pomodoro'));
   });
 
   it('falls back to defaults if user config has invalid YAML', () => {

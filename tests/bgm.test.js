@@ -20,7 +20,7 @@ function createMockConfig() {
       };
       return sources[mode] || [];
     },
-    getSocketPath: () => '\\\\.\\pipe\\cfm-bgm-test',
+    getSocketPath: () => '\\\\.\\pipe\\muji-bgm-test',
     getPluginDir: () => __dirname,
   };
 }

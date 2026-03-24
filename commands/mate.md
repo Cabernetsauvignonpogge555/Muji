@@ -14,12 +14,12 @@ Dispatch background research tasks to a subagent.
 3. Launch the `research-mate` subagent with the topic as context:
    - The subagent runs in a separate context
    - It performs web search and summarization
-   - Results are saved to /tmp/cfm-research-output.md
+   - Results are saved to /tmp/muji-research-output.md
 
 4. When the subagent completes, the TeammateIdle hook fires,
    which plays the `subagent_done` notification.
 
 5. The user can then ask about the research results. The main
-   Claude session can read /tmp/cfm-research-output.md.
+   Claude session can read /tmp/muji-research-output.md.
 
 6. If no topic provided, show usage help.

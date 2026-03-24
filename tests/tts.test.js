@@ -92,4 +92,64 @@ describe('TTSEngine', () => {
       /Unknown TTS engine/,
     );
   });
+
+  it('replaces newlines in text with spaces to prevent shell command breakage', () => {
+    const TTSEngine = require('../scripts/core/tts.js');
+    const tts = new TTSEngine(createMockConfig());
+    // A literal newline inside a double-quoted shell argument terminates the argument
+    // on most shells. It must be replaced with a space.
+    const cmd = tts._buildCommand('edge-tts', 'Hello\nWorld', 'en-US-AriaNeural', '/tmp/out.mp3');
+    assert.ok(!cmd.includes('\n'), 'Newlines must not appear in the shell command');
+    assert.ok(cmd.includes('Hello World'), 'Newline should be replaced with a space');
+  });
+
+  it('replaces carriage-return+newline with a space', () => {
+    const TTSEngine = require('../scripts/core/tts.js');
+    const tts = new TTSEngine(createMockConfig());
+    const cmd = tts._buildCommand('edge-tts', 'Hello\r\nWorld', 'en-US-AriaNeural', '/tmp/out.mp3');
+    assert.ok(!cmd.includes('\r') && !cmd.includes('\n'), 'CR/LF must not appear in the shell command');
+  });
+
+  it('_cleanCache skips files deleted between readdir and stat (TOCTOU)', () => {
+    const TTSEngine = require('../scripts/core/tts.js');
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const os = require('node:os');
+
+    const tts = new TTSEngine(createMockConfig());
+
+    // Create a temporary cache dir with 2 files
+    const tmpCacheDir = path.join(os.tmpdir(), `muji-test-cache-${Date.now()}`);
+    fs.mkdirSync(tmpCacheDir, { recursive: true });
+    const file1 = path.join(tmpCacheDir, 'aaa.mp3');
+    const file2 = path.join(tmpCacheDir, 'bbb.mp3');
+    fs.writeFileSync(file1, Buffer.alloc(1024));
+    fs.writeFileSync(file2, Buffer.alloc(1024));
+
+    tts._cacheDir = tmpCacheDir;
+    tts._cacheMaxMb = 0.000001; // Force cleanup of everything
+
+    // Patch statSync to throw ENOENT for one file, simulating a race condition
+    const realStatSync = fs.statSync.bind(fs);
+    let throwOnce = true;
+    const origStatSync = fs.statSync;
+    fs.statSync = function(p, ...args) {
+      if (throwOnce && p === file1) {
+        throwOnce = false;
+        const err = new Error('ENOENT: no such file or directory');
+        err.code = 'ENOENT';
+        throw err;
+      }
+      return realStatSync(p, ...args);
+    };
+
+    // Should not throw and should still process remaining files
+    assert.doesNotThrow(() => tts._cleanCache());
+
+    // Restore
+    fs.statSync = origStatSync;
+
+    // Cleanup
+    try { fs.rmSync(tmpCacheDir, { recursive: true }); } catch { }
+  });
 });
