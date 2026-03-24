@@ -17,7 +17,7 @@ function readStdin() {
     let data = '';
     let resolved = false;
     function done(value) {
-      if (!resolved) { resolved = true; resolve(value); }
+      if (!resolved) { resolved = true; clearTimeout(timer); resolve(value); }
     }
     process.stdin.setEncoding('utf8');
     process.stdin.on('data', (chunk) => (data += chunk));

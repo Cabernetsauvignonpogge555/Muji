@@ -22,7 +22,7 @@ function commandMatchesPattern(command, pattern) {
   const patterns = config.get('advanced.patterns');
   if (!patterns) return;
 
-  if (commandMatchesPattern(command, patterns.git_commit)) {
+  if (patterns.git_commit && commandMatchesPattern(command, patterns.git_commit)) {
     // git writes normal output (branch, hash) to stderr, so we check exit_code
     // rather than the absence of stderr to determine success.
     const exitCode = input?.tool_response?.exit_code;
@@ -31,7 +31,7 @@ function commandMatchesPattern(command, pattern) {
     }
     return;
   }
-  if (commandMatchesPattern(command, patterns.git_push)) {
+  if (patterns.git_push && commandMatchesPattern(command, patterns.git_push)) {
     const exitCode = input?.tool_response?.exit_code;
     if (exitCode === 0 || exitCode === undefined) {
       await notifier.notify('push_success');
