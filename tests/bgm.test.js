@@ -21,6 +21,7 @@ function createMockConfig() {
       return sources[mode] || [];
     },
     getSocketPath: () => '\\\\.\\pipe\\muji-bgm-test',
+    getMpvPath: () => 'mpv',
     getPluginDir: () => __dirname,
   };
 }

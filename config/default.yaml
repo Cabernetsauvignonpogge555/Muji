@@ -279,6 +279,10 @@ advanced:
   log_file: ~/.claude/.muji/muji.log
   log_level: warn                 # debug, info, warn, error
 
+  # Windows: path to Python Scripts directory (for yt-dlp, edge-tts)
+  # Auto-detected if not set; override if your Python is in a non-standard location
+  python_scripts_dir: ""
+
   # Pattern detection for bash commands
   patterns:
     git_commit: "git commit"

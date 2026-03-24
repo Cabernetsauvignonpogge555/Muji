@@ -6,6 +6,7 @@ class Notifier {
     this._config = config;
     this._bgm = bgmManager;
     this._tts = ttsEngine;
+    this._mpvPath = config.getMpvPath();
     this._queue = Promise.resolve();
   }
 
@@ -76,7 +77,7 @@ class Notifier {
       const args = ['--no-video', '--really-quiet'];
       if (volume !== undefined) { args.push(`--volume=${volume}`); }
       args.push(filePath);
-      const proc = spawn('mpv', args, { stdio: 'ignore' });
+      const proc = spawn(this._mpvPath, args, { stdio: 'ignore' });
       proc.on('exit', done);
       proc.on('error', (err) => { console.warn('[Muji] Audio playback error:', err.message); done(); });
       const timer = setTimeout(() => { try { proc.kill(); } catch { } done(); }, 30000);

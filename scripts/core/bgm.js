@@ -9,6 +9,7 @@ class BGMManager {
     this._currentMode = null;
     this._volume = config.get('bgm.volume') ?? 30;
     this._socketPath = config.getSocketPath();
+    this._mpvPath = config.getMpvPath();
     this._restartAttempted = false;
   }
 
@@ -109,7 +110,15 @@ class BGMManager {
     ];
     return new Promise((resolve, reject) => {
       try {
-        this._process = spawn('mpv', args, { stdio: 'ignore', detached: true });
+        // Extend PATH so mpv can find yt-dlp on Windows
+        const env = { ...process.env };
+        if (process.platform === 'win32') {
+          const pyScripts = this._config.get('advanced.python_scripts_dir');
+          if (pyScripts) {
+            env.PATH = `${pyScripts};${env.PATH || ''}`;
+          }
+        }
+        this._process = spawn(this._mpvPath, args, { stdio: 'ignore', detached: true, env });
         this._process.unref();
         this._process.on('error', (err) => {
           console.error('[Muji] mpv error:', err.message);

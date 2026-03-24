@@ -76,6 +76,24 @@ class Config {
     return this._pluginDir;
   }
 
+  getMpvPath() {
+    // User can override in config: bgm.mpv.path
+    const configured = this.get('bgm.mpv.path');
+    if (configured) return configured;
+    // Auto-detect on Windows where mpv is often not in PATH
+    if (process.platform === 'win32') {
+      const fs = require('node:fs');
+      const candidates = [
+        'C:\\Program Files\\MPV Player\\mpv.exe',
+        'C:\\Program Files (x86)\\MPV Player\\mpv.exe',
+      ];
+      for (const p of candidates) {
+        if (fs.existsSync(p)) return p;
+      }
+    }
+    return 'mpv'; // fallback to PATH
+  }
+
   _validate(config) {
     if (!config || typeof config !== 'object') {
       throw new Error('[Muji] Config is null or not an object');
