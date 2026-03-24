@@ -1,5 +1,10 @@
 const { describe, it, beforeEach } = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+
+const testPidPath = path.join(os.tmpdir(), 'muji-bgm-test.pid');
 
 function createMockConfig() {
   return {
@@ -23,10 +28,19 @@ function createMockConfig() {
     getSocketPath: () => '\\\\.\\pipe\\muji-bgm-test',
     getMpvPath: () => 'mpv',
     getPluginDir: () => __dirname,
+    getBgmPidPath: () => testPidPath,
   };
 }
 
+function cleanupTestPid() {
+  try { fs.unlinkSync(testPidPath); } catch { }
+}
+
 describe('BGMManager', () => {
+  beforeEach(() => {
+    cleanupTestPid();
+  });
+
   it('initializes with correct defaults', () => {
     const BGMManager = require('../scripts/core/bgm.js');
     const mgr = new BGMManager(createMockConfig());
@@ -81,12 +95,52 @@ describe('BGMManager', () => {
     const BGMManager = require('../scripts/core/bgm.js');
     const mgr = new BGMManager(createMockConfig());
     mgr._volume = 30;
-    // Override setVolume to avoid IPC calls (no mpv running)
     const volumesSeen = [];
     mgr.setVolume = async (v) => { mgr._volume = mgr._clampVolume(v); volumesSeen.push(mgr._volume); };
     await mgr.fadeVolume(80, 0);
-    // Should set to target in a single step, not 10 steps
     assert.strictEqual(volumesSeen.length, 1);
     assert.strictEqual(mgr._volume, 80);
+  });
+
+  it('isPlayingGlobal returns false when no PID file exists', () => {
+    const BGMManager = require('../scripts/core/bgm.js');
+    const mgr = new BGMManager(createMockConfig());
+    assert.strictEqual(mgr.isPlayingGlobal(), false);
+  });
+
+  it('isPlayingGlobal returns false when PID file has stale PID', () => {
+    const BGMManager = require('../scripts/core/bgm.js');
+    const mgr = new BGMManager(createMockConfig());
+    // Write a PID that almost certainly does not exist
+    fs.writeFileSync(testPidPath, '999999999', 'utf8');
+    assert.strictEqual(mgr.isPlayingGlobal(), false);
+    cleanupTestPid();
+  });
+
+  it('isPlayingGlobal returns true for own process PID', () => {
+    const BGMManager = require('../scripts/core/bgm.js');
+    const mgr = new BGMManager(createMockConfig());
+    // Write our own PID — we are definitely alive
+    fs.writeFileSync(testPidPath, String(process.pid), 'utf8');
+    assert.strictEqual(mgr.isPlayingGlobal(), true);
+    cleanupTestPid();
+  });
+
+  it('_writePid and _readPid round-trip correctly', () => {
+    const BGMManager = require('../scripts/core/bgm.js');
+    const mgr = new BGMManager(createMockConfig());
+    mgr._writePid(12345);
+    assert.strictEqual(mgr._readPid(), 12345);
+    mgr._cleanupPid();
+    assert.strictEqual(mgr._readPid(), null);
+  });
+
+  it('_stopGlobal cleans up PID file', async () => {
+    const BGMManager = require('../scripts/core/bgm.js');
+    const mgr = new BGMManager(createMockConfig());
+    // Write a stale PID
+    fs.writeFileSync(testPidPath, '999999999', 'utf8');
+    await mgr._stopGlobal();
+    assert.strictEqual(fs.existsSync(testPidPath), false);
   });
 });

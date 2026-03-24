@@ -10,6 +10,7 @@ class BGMManager {
     this._volume = config.get('bgm.volume') ?? 30;
     this._socketPath = config.getSocketPath();
     this._mpvPath = config.getMpvPath();
+    this._pidPath = config.getBgmPidPath();
     this._restartAttempted = false;
   }
 
@@ -21,7 +22,8 @@ class BGMManager {
       this._currentMode = mode;
       return;
     }
-    await this.stop();
+    // Kill any existing global mpv process (from this or other windows)
+    await this._stopGlobal();
     await this._spawnMpv(sources[0]);
     this._currentMode = mode;
   }
@@ -32,18 +34,18 @@ class BGMManager {
       this._process = null;
     }
     this._currentMode = null;
-    // Reset the restart guard so a subsequent start() gets a clean slate.
     this._restartAttempted = false;
+    this._cleanupPid();
     this._cleanup();
   }
 
   async switchMode(mode) {
-    await this.stop();
+    await this._stopGlobal();
     await this.start(mode);
   }
 
   async playUrl(url) {
-    await this.stop();
+    await this._stopGlobal();
     await this._spawnMpv(url);
     this._currentMode = 'custom';
   }
@@ -92,12 +94,72 @@ class BGMManager {
     return this._process !== null && !this._process.killed;
   }
 
+  /**
+   * Check if another mpv BGM process is running globally (from any window).
+   */
+  isPlayingGlobal() {
+    const pid = this._readPid();
+    if (pid === null) return false;
+    return this._isProcessAlive(pid);
+  }
+
   _resolveSources(mode) {
     return this._config.getBGMSources(mode) || [];
   }
 
   _clampVolume(vol) {
     return Math.max(0, Math.min(100, Math.round(vol)));
+  }
+
+  /**
+   * Stop any globally running mpv BGM process (from this or another window).
+   */
+  async _stopGlobal() {
+    // First stop our own local process if any
+    if (this._process) {
+      try { this._process.kill(); } catch { /* already exited */ }
+      this._process = null;
+    }
+    // Then kill any orphaned global process via PID file
+    const pid = this._readPid();
+    if (pid !== null && this._isProcessAlive(pid)) {
+      try { process.kill(pid); } catch { /* already exited */ }
+    }
+    this._cleanupPid();
+    this._cleanup();
+    this._currentMode = null;
+    this._restartAttempted = false;
+  }
+
+  _readPid() {
+    try {
+      const content = fs.readFileSync(this._pidPath, 'utf8').trim();
+      const pid = parseInt(content, 10);
+      return isNaN(pid) ? null : pid;
+    } catch {
+      return null;
+    }
+  }
+
+  _writePid(pid) {
+    try {
+      fs.writeFileSync(this._pidPath, String(pid), 'utf8');
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  _cleanupPid() {
+    try { fs.unlinkSync(this._pidPath); } catch { /* not present */ }
+  }
+
+  _isProcessAlive(pid) {
+    try {
+      process.kill(pid, 0); // signal 0 = existence check
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async _spawnMpv(source) {
@@ -120,16 +182,20 @@ class BGMManager {
         }
         this._process = spawn(this._mpvPath, args, { stdio: 'ignore', detached: true, env });
         this._process.unref();
+        // Write PID file for cross-window singleton
+        if (this._process.pid) {
+          this._writePid(this._process.pid);
+        }
         this._process.on('error', (err) => {
           console.error('[Muji] mpv error:', err.message);
           this._process = null;
+          this._cleanupPid();
           if (!this._restartAttempted) {
             this._restartAttempted = true;
             this._spawnMpv(source).then(() => {
               this._restartAttempted = false;
             }).catch(() => {
               console.error('[Muji] mpv restart failed. BGM disabled.');
-              // Always reset the flag so future start() calls can attempt restart again.
               this._restartAttempted = false;
             });
           }
@@ -139,6 +205,7 @@ class BGMManager {
             console.warn(`[Muji] mpv exited with code ${code}`);
           }
           this._process = null;
+          this._cleanupPid();
         });
         setTimeout(resolve, 500);
       } catch (err) {
