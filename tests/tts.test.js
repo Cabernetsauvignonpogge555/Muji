@@ -84,6 +84,35 @@ describe('TTSEngine', () => {
     assert.ok(cmd.includes('\\`'), 'Backticks in text should be escaped');
   });
 
+  it('sanitizes ElevenLabs voiceId and apiKey to prevent shell injection', () => {
+    const TTSEngine = require('../scripts/core/tts.js');
+    const mockConfig = {
+      ...createMockConfig(),
+      get: (p) => {
+        const data = {
+          'tts.engine': 'elevenlabs',
+          'tts.fallback_engine': 'system',
+          'tts.cache_enabled': false,
+          'tts.engines.elevenlabs.api_key': 'key"; rm -rf /',
+          'tts.engines.elevenlabs.voice_id': 'id$(whoami)',
+          'tts.engines.elevenlabs.model_id': 'eleven_flash_v2_5',
+        };
+        return data[p];
+      },
+      getTTSVoice: () => null,
+      getLanguage: () => 'en',
+    };
+    const tts = new TTSEngine(mockConfig);
+    // voice=null so it falls back to voice_id from config which contains $(whoami)
+    const cmd = tts._buildCommand('elevenlabs', 'Hello', null, '/tmp/out.mp3');
+    // The voiceId and apiKey should have dangerous characters stripped
+    assert.ok(!cmd.includes('$('), 'voiceId should not contain $() after sanitization');
+    assert.ok(!cmd.includes('rm -rf'), 'apiKey should not contain shell commands after sanitization');
+    // Should still contain the safe alphanumeric parts
+    assert.ok(cmd.includes('idwhoami'), 'safe alphanumeric part of voiceId should remain');
+    assert.ok(cmd.includes('key'), 'safe alphanumeric part of apiKey should remain');
+  });
+
   it('throws for unknown TTS engine', () => {
     const TTSEngine = require('../scripts/core/tts.js');
     const tts = new TTSEngine(createMockConfig());

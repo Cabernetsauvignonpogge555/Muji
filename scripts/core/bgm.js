@@ -60,6 +60,10 @@ class BGMManager {
 
   async fadeVolume(target, durationMs) {
     target = this._clampVolume(target);
+    if (!durationMs || durationMs <= 0) {
+      await this.setVolume(target);
+      return;
+    }
     const steps = 10;
     const stepDuration = durationMs / steps;
     const current = this._volume;

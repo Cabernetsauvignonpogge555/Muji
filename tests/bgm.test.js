@@ -62,4 +62,17 @@ describe('BGMManager', () => {
     assert.strictEqual(mgr._clampVolume(-10), 0);
     assert.strictEqual(mgr._clampVolume(50), 50);
   });
+
+  it('fadeVolume with durationMs=0 sets volume instantly', async () => {
+    const BGMManager = require('../scripts/core/bgm.js');
+    const mgr = new BGMManager(createMockConfig());
+    mgr._volume = 30;
+    // Override setVolume to avoid IPC calls (no mpv running)
+    const volumesSeen = [];
+    mgr.setVolume = async (v) => { mgr._volume = mgr._clampVolume(v); volumesSeen.push(mgr._volume); };
+    await mgr.fadeVolume(80, 0);
+    // Should set to target in a single step, not 10 steps
+    assert.strictEqual(volumesSeen.length, 1);
+    assert.strictEqual(mgr._volume, 80);
+  });
 });

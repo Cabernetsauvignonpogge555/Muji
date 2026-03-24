@@ -22,11 +22,21 @@ function commandMatchesPattern(command, pattern) {
   const patterns = config.get('advanced.patterns');
   if (!patterns) return;
 
-  if (command.includes(patterns.git_commit) && !stderr) {
-    await notifier.notify('commit_success'); return;
+  if (commandMatchesPattern(command, patterns.git_commit)) {
+    // git writes normal output (branch, hash) to stderr, so we check exit_code
+    // rather than the absence of stderr to determine success.
+    const exitCode = input?.tool_response?.exit_code;
+    if (exitCode === 0 || exitCode === undefined) {
+      await notifier.notify('commit_success');
+    }
+    return;
   }
-  if (command.includes(patterns.git_push) && !stderr) {
-    await notifier.notify('push_success'); return;
+  if (commandMatchesPattern(command, patterns.git_push)) {
+    const exitCode = input?.tool_response?.exit_code;
+    if (exitCode === 0 || exitCode === undefined) {
+      await notifier.notify('push_success');
+    }
+    return;
   }
   for (const tc of patterns.test_commands || []) {
     if (commandMatchesPattern(command, tc)) {
@@ -51,9 +61,19 @@ function commandMatchesPattern(command, pattern) {
     }
   }
   for (const lc of patterns.lint_commands || []) {
-    // Lint tools write errors to stdout in many cases; check both streams
-    if (commandMatchesPattern(command, lc) && (stderr || stdout)) {
-      await notifier.notify('lint_error'); return;
+    if (commandMatchesPattern(command, lc)) {
+      // Check exit code first; lint tools typically exit non-zero on errors.
+      // Fall back to scanning output for error indicators if exit_code is unavailable.
+      const exitCode = input?.tool_response?.exit_code;
+      const hasErrors = exitCode !== undefined
+        ? exitCode !== 0
+        : (stderr || stdout) && ['error', 'Error', 'warning', 'Warning'].some(
+            (indicator) => stderr.includes(indicator) || stdout.includes(indicator)
+          );
+      if (hasErrors) {
+        await notifier.notify('lint_error');
+      }
+      return;
     }
   }
 })();

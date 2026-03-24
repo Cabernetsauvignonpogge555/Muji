@@ -73,6 +73,9 @@ class Config {
   }
 
   _validate(config) {
+    if (!config || typeof config !== 'object') {
+      throw new Error('[Muji] Config is null or not an object');
+    }
     const required = ['language', 'tts', 'bgm', 'sfx', 'notifications', 'pomodoro'];
     for (const key of required) {
       if (!config[key]) {
@@ -90,7 +93,11 @@ class Config {
   _loadDefault() {
     const defaultPath = path.join(this._pluginDir, 'config', 'default.yaml');
     const content = fs.readFileSync(defaultPath, 'utf8');
-    return YAML.parse(content);
+    const parsed = YAML.parse(content);
+    if (!parsed || typeof parsed !== 'object') {
+      throw new Error(`[Muji] default.yaml is empty or invalid`);
+    }
+    return parsed;
   }
 
   _loadUser() {
@@ -99,7 +106,10 @@ class Config {
     if (!fs.existsSync(userPath)) return null;
     try {
       const content = fs.readFileSync(userPath, 'utf8');
-      return YAML.parse(content);
+      const parsed = YAML.parse(content);
+      // YAML.parse returns null for empty files; treat as "no user config"
+      if (!parsed || typeof parsed !== 'object') return null;
+      return parsed;
     } catch (err) {
       console.warn(`[Muji] Failed to load user config (${userPath}): ${err.message}. Using defaults.`);
       return null;

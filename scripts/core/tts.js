@@ -98,10 +98,13 @@ class TTSEngine {
         const apiKey = this._config.get('tts.engines.elevenlabs.api_key') || process.env.ELEVENLABS_API_KEY || '';
         const voiceId = voice || this._config.get('tts.engines.elevenlabs.voice_id') || '';
         const modelId = this._config.get('tts.engines.elevenlabs.model_id') || 'eleven_flash_v2_5';
+        // Sanitize voiceId and apiKey: strip anything that isn't alphanumeric, dash, or underscore
+        const safeVoiceId = voiceId.replace(/[^a-zA-Z0-9_-]/g, '');
+        const safeApiKey = apiKey.replace(/[^a-zA-Z0-9_-]/g, '');
         // Use JSON.stringify for the body to avoid shell injection in the JSON payload
         const body = JSON.stringify({ text: text, model_id: modelId });
         const safeBody = body.replace(/'/g, "'\\''");
-        return `curl -s -X POST "https://api.elevenlabs.io/v1/text-to-speech/${voiceId}" -H "xi-api-key: ${apiKey}" -H "Content-Type: application/json" -d '${safeBody}' --output "${outPath}"`;
+        return `curl -s -X POST "https://api.elevenlabs.io/v1/text-to-speech/${safeVoiceId}" -H "xi-api-key: ${safeApiKey}" -H "Content-Type: application/json" -d '${safeBody}' --output "${outPath}"`;
       }
       case 'coqui': {
         const model = this._config.get('tts.engines.coqui.model') || 'tts_models/en/ljspeech/tacotron2-DDC';

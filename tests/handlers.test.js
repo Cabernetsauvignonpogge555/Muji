@@ -11,8 +11,8 @@ function commandMatchesPattern(command, pattern) {
 }
 
 function matchCommand(command, patterns) {
-  if (command.includes(patterns.git_commit)) return 'commit_success';
-  if (command.includes(patterns.git_push)) return 'push_success';
+  if (commandMatchesPattern(command, patterns.git_commit)) return 'commit_success';
+  if (commandMatchesPattern(command, patterns.git_push)) return 'push_success';
   for (const tc of patterns.test_commands) {
     if (commandMatchesPattern(command, tc)) return 'test';
   }
@@ -78,5 +78,12 @@ describe('commandMatchesPattern word-boundary logic', () => {
   });
   it('returns false for pattern not present', () => {
     assert.strictEqual(commandMatchesPattern('ls -la', 'make'), false);
+  });
+  it('does NOT match "git commit" when preceded by a letter', () => {
+    // Patterns after non-separator chars should not match
+    assert.strictEqual(commandMatchesPattern('fugit commit -m "fix"', 'git commit'), false);
+  });
+  it('matches "git push" after a semicolon', () => {
+    assert.strictEqual(commandMatchesPattern('cd repo; git push', 'git push'), true);
   });
 });
