@@ -6,7 +6,7 @@
   "scripts": {
     "setup": "node scripts/cli/setup.js",
     "reset": "node scripts/cli/reset.js",
-    "test": "node --test tests/"
+    "test": "node --test tests/*.test.js"
   },
   "dependencies": {
     "yaml": "^2.4.0"
