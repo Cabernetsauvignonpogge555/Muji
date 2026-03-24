@@ -1,0 +1,23 @@
+{
+  "name": "chill-focus-mate",
+  "version": "0.1.0",
+  "description": "AI-powered coding companion with ambient music, TTS notifications, and pomodoro timer for Claude Code",
+  "main": "scripts/core/config.js",
+  "scripts": {
+    "setup": "node scripts/cli/setup.js",
+    "reset": "node scripts/cli/reset.js",
+    "test": "node --test tests/"
+  },
+  "dependencies": {
+    "yaml": "^2.4.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "claude-code", "plugin", "ambient", "lofi",
+    "focus", "pomodoro", "tts", "productivity"
+  ],
+  "license": "MIT"
+}

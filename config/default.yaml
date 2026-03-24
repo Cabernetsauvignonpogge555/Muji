@@ -1,0 +1,300 @@
+# ============================================================
+# Chill Focus Mate — Configuration
+# ============================================================
+
+# ----------------------------------------------------------
+# Language & Locale
+# ----------------------------------------------------------
+language: en                     # Default language for TTS
+# Supported: en, ko, ja, zh, es, fr, de, pt, ru
+# This affects TTS voice selection and notification messages
+
+# ----------------------------------------------------------
+# TTS (Text-to-Speech) Engine
+# ----------------------------------------------------------
+tts:
+  engine: edge-tts               # Primary TTS engine
+  # Options: edge-tts, elevenlabs, coqui, espeak, system
+  #   - edge-tts:    Free, natural, requires internet (recommended)
+  #   - elevenlabs:  Premium quality, requires API key, paid
+  #   - coqui:       Free, offline, moderate quality
+  #   - espeak:      Free, offline, robotic quality
+  #   - system:      macOS 'say' / Linux 'spd-say'
+
+  fallback_engine: system        # Fallback if primary fails
+
+  cache_enabled: true            # Cache generated TTS audio files
+  cache_dir: ~/.claude/.chill-focus-mate/tts-cache
+  cache_max_mb: 200              # Max cache size in MB
+
+  # Per-engine configuration
+  engines:
+    edge-tts:
+      voices:
+        en: en-US-AriaNeural       # English (female, natural)
+        ko: ko-KR-SunHiNeural      # Korean (female, natural)
+        ja: ja-JP-NanamiNeural      # Japanese (female, natural)
+        zh: zh-CN-XiaoxiaoNeural    # Chinese (female, natural)
+        es: es-ES-ElviraNeural      # Spanish
+        fr: fr-FR-DeniseNeural      # French
+        de: de-DE-KatjaNeural       # German
+        pt: pt-BR-FranciscaNeural   # Portuguese
+        ru: ru-RU-SvetlanaNeural    # Russian
+
+    elevenlabs:
+      api_key: ""                   # Set via env ELEVENLABS_API_KEY or here
+      voice_id: 21m00Tcm4TlvDq8ikWAM  # Default voice (Rachel)
+      model_id: eleven_flash_v2_5
+      # Custom voices per language (optional)
+      voices:
+        en: ""                      # Use default voice_id if empty
+        ko: ""
+
+    coqui:
+      model: tts_models/en/ljspeech/tacotron2-DDC
+      # Note: limited language support, mainly English
+
+    espeak:
+      voices:
+        en: en
+        ko: ko
+        ja: ja
+        zh: zh
+        es: es
+        fr: fr
+        de: de
+
+    system:
+      # macOS 'say' voices
+      macos_voices:
+        en: Samantha
+        ko: Yuna
+        ja: Kyoko
+        zh: Ting-Ting
+      # Linux: uses spd-say with language codes
+
+# ----------------------------------------------------------
+# Background Music (BGM)
+# ----------------------------------------------------------
+bgm:
+  enabled: true
+  default_mode: lofi              # Default music mode on session start
+  volume: 30                      # Default volume (0-100)
+
+  # Auto-start BGM when Claude Code session begins
+  auto_start: true
+
+  # Music modes — each maps to a YouTube URL, playlist, or local path
+  modes:
+    lofi:
+      name: "Lo-Fi Hip Hop"
+      sources:
+        - https://www.youtube.com/watch?v=jfKfPfyJRdk    # lofi hip hop radio
+      fallback_local: null        # Optional local file fallback
+
+    jazz:
+      name: "Jazz & Rain"
+      sources:
+        - https://www.youtube.com/watch?v=rUxyKA_-grg
+      fallback_local: null
+
+    nature:
+      name: "Nature Sounds"
+      sources:
+        - https://www.youtube.com/watch?v=lTRiuFIWV54
+      fallback_local: null
+
+    classical:
+      name: "Classical Focus"
+      sources:
+        - https://www.youtube.com/watch?v=jgpJVI3tDbY
+      fallback_local: null
+
+    silence:
+      name: "Silence"
+      sources: []
+
+  # mpv configuration
+  mpv:
+    socket_path: /tmp/cfm-bgm-socket
+    extra_args:
+      - "--no-video"
+      - "--really-quiet"
+      - "--loop=inf"
+
+# ----------------------------------------------------------
+# Sound Effects (SFX)
+# ----------------------------------------------------------
+sfx:
+  enabled: true
+  volume: 80                      # SFX volume (0-100)
+
+  # Override sound files per event (relative to sounds/ dir or absolute path)
+  # Set to null to disable specific sounds
+  events:
+    session_start: chime-soft.wav
+    commit_success: success.wav
+    push_success: success-big.wav
+    test_fail: warn-soft.wav
+    build_success: success.wav
+    build_fail: error.wav
+    lint_error: warn-soft.wav
+    subagent_done: knock.wav
+    pomodoro_end: bell.wav
+    pomodoro_warning: tick.wav
+    break_end: bell-soft.wav
+    error_generic: error.wav
+    task_completed: success.wav
+    session_end: chime-soft.wav
+
+# ----------------------------------------------------------
+# Notifications (TTS Messages)
+# ----------------------------------------------------------
+notifications:
+  enabled: true
+
+  # Ducking: lower BGM volume during TTS/SFX playback
+  ducking:
+    enabled: true
+    duck_volume: 10               # BGM volume during notification (0-100)
+    fade_duration_ms: 300         # Fade in/out duration in milliseconds
+    fade_steps: 6                 # Number of volume steps during fade
+
+  # Message templates per event
+  # Use {variable} for dynamic content
+  # Define per language; falls back to 'en' if current language not found
+  messages:
+    session_start:
+      en: "Let's get started."
+      ko: "같이 시작해볼까?"
+      ja: "始めよう。"
+
+    commit_success:
+      en: null                    # null = SFX only, no TTS
+      ko: null
+
+    push_success:
+      en: "Push complete."
+      ko: "푸시 완료!"
+
+    test_fail:
+      en: "{count} tests failed."
+      ko: "테스트 {count}개 실패했어."
+
+    build_success:
+      en: "Build complete, no errors."
+      ko: "빌드 끝났어, 에러 없어."
+
+    build_fail:
+      en: "Build failed. Check the output."
+      ko: "빌드 실패했어. 확인해봐."
+
+    subagent_done:
+      en: "Research is ready."
+      ko: "리서치 정리해뒀어."
+
+    pomodoro_end:
+      en: "25 minutes up. Take a break."
+      ko: "25분 지났어, 쉬어가자."
+
+    pomodoro_warning:
+      en: "5 minutes left."
+      ko: "5분 남았어."
+
+    break_end:
+      en: "Break's over. Ready to continue?"
+      ko: "다시 시작할까?"
+
+    task_completed:
+      en: "Task done."
+      ko: "작업 끝났어."
+
+    session_end:
+      en: "Good work today."
+      ko: "오늘 수고했어."
+
+    error_generic:
+      en: "An error occurred."
+      ko: "에러 발생했어."
+
+# ----------------------------------------------------------
+# Pomodoro Timer
+# ----------------------------------------------------------
+pomodoro:
+  enabled: true
+  work_minutes: 25
+  short_break_minutes: 5
+  long_break_minutes: 15
+  sessions_before_long_break: 4
+  auto_start_break: true          # Automatically start break after work
+  auto_start_work: false          # Require manual start for next work session
+
+  # Music mode overrides during pomodoro phases
+  music_override:
+    work: null                    # null = keep current mode
+    short_break: nature
+    long_break: nature
+
+# ----------------------------------------------------------
+# Focus Modes (Presets)
+# ----------------------------------------------------------
+focus_modes:
+  deep:
+    name: "Deep Work"
+    description: "Minimal distraction, lo-fi music, notifications reduced"
+    bgm_mode: lofi
+    bgm_volume: 25
+    notifications_enabled: true
+    tts_enabled: false            # SFX only in deep mode
+    pomodoro_auto_start: true
+
+  write:
+    name: "Writing Mode"
+    description: "Jazz and rain, gentle notifications"
+    bgm_mode: jazz
+    bgm_volume: 20
+    notifications_enabled: true
+    tts_enabled: true
+    pomodoro_auto_start: false
+
+  chill:
+    name: "Chill Mode"
+    description: "Relaxed pace, nature sounds, all notifications"
+    bgm_mode: nature
+    bgm_volume: 35
+    notifications_enabled: true
+    tts_enabled: true
+    pomodoro_auto_start: false
+
+# ----------------------------------------------------------
+# Advanced
+# ----------------------------------------------------------
+advanced:
+  pid_file: /tmp/cfm-pomodoro.pid
+  log_file: ~/.claude/.chill-focus-mate/cfm.log
+  log_level: warn                 # debug, info, warn, error
+
+  # Pattern detection for bash commands
+  patterns:
+    git_commit: "git commit"
+    git_push: "git push"
+    test_commands:
+      - "npm test"
+      - "npx jest"
+      - "pytest"
+      - "cargo test"
+      - "go test"
+      - "mix test"
+      - "bundle exec rspec"
+    build_commands:
+      - "npm run build"
+      - "npx next build"
+      - "cargo build"
+      - "go build"
+      - "make"
+      - "gradle build"
+    lint_commands:
+      - "npm run lint"
+      - "eslint"
+      - "pylint"
+      - "cargo clippy"
