@@ -61,25 +61,25 @@ const OUTPUT_DIR = path.resolve(__dirname, '..', '..', 'sounds', 'voices');
 // ---------------------------------------------------------------------------
 const DEFAULT_MESSAGES = {
   session_start: {
-    en: "Let's get started.",
-    ko: '같이 시작해볼까?',
+    en: 'Alright, starting up.',
+    ko: '자, 시작하자.',
     ja: '始めよう。',
   },
   push_success: {
-    en: 'Push complete.',
-    ko: '푸시 완료!',
+    en: 'Pushed.',
+    ko: '푸시 완료.',
   },
   build_success: {
-    en: 'Build complete, no errors.',
-    ko: '빌드 끝났어, 에러 없어.',
+    en: 'Build passed.',
+    ko: '빌드 성공.',
   },
   build_fail: {
-    en: 'Build failed. Check the output.',
-    ko: '빌드 실패했어. 확인해봐.',
+    en: 'Build failed. Check the logs.',
+    ko: '빌드 실패. 로그 확인해봐.',
   },
   subagent_done: {
-    en: 'Research is ready.',
-    ko: '리서치 정리해뒀어.',
+    en: 'Research done. Check it out.',
+    ko: '조사 끝났어. 확인해봐.',
   },
   pomodoro_end: {
     en: '25 minutes up. Take a break.',
@@ -90,20 +90,20 @@ const DEFAULT_MESSAGES = {
     ko: '5분 남았어.',
   },
   break_end: {
-    en: 'Break is over. Ready to continue?',
-    ko: '다시 시작할까?',
+    en: 'Ready to get back to it?',
+    ko: '쉬었으면 다시 해볼까?',
   },
   task_completed: {
-    en: 'Task done.',
-    ko: '작업 끝났어.',
+    en: 'One down. Moving on.',
+    ko: '하나 끝. 다음 가자.',
   },
   session_end: {
-    en: 'Great session. Take care.',
-    ko: '오늘 수고했어. 푹 쉬어.',
+    en: 'Work wrapped up.',
+    ko: '작업 마무리됐어.',
   },
   error_generic: {
-    en: 'An error occurred.',
-    ko: '에러 발생했어.',
+    en: 'Got an error. Take a look.',
+    ko: '에러 났어. 한번 봐봐.',
   },
   hourly_01: {
     en: 'It has been an hour. How is it going?',
