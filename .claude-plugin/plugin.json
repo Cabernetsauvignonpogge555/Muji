@@ -1,9 +1,0 @@
-{
-  "name": "muji",
-  "version": "0.1.0",
-  "description": "Ambient music, TTS notifications, pomodoro timer, and AI research companion for Claude Code",
-  "author": "",
-  "homepage": "",
-  "commands": ["focus", "music", "timer", "mate"],
-  "agents": ["research-mate"]
-}
